@@ -1,5 +1,28 @@
-<pattern>
-    %d{yyyy-MM-dd HH:mm:ss} [%thread]
-    [%X{traceId:-}-%X{spanId:-}]
-    %-5level %logger{36} - %msg%n
-</pattern>
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>
+                %d{yyyy-MM-dd HH:mm:ss} [%thread]
+                    [%X{traceId:-}-%X{spanId:-}]
+                    %-5level %logger{36} - %msg%n
+<!--                %d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n-->
+            </pattern>
+        </encoder>
+    </appender>
+
+    <appender name="OpenTelemetry"
+              class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
+    </appender>
+    <root level="ERROR">
+        <appender-ref ref="console"/>
+        <appender-ref ref="OpenTelemetry"/>
+    </root>
+
+    <!--<pattern>-->
+    <!--    %d{yyyy-MM-dd HH:mm:ss} [%thread]-->
+    <!--    [%X{traceId:-}-%X{spanId:-}]-->
+    <!--    %-5level %logger{36} - %msg%n-->
+    <!--</pattern>-->
+
+</configuration>
