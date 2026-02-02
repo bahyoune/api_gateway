@@ -24,7 +24,7 @@ Internal services (Order, Payment, etc.) are **never exposed publicly**.
 
 ---
 
-## Security – JWT Authentication
+## Security -> JWT Authentication
 ### Overview
 The gateway enforces **JWT-based security** for all incoming requests.
 
@@ -48,9 +48,9 @@ GET /orders/123
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 If the token is:
-* Missing → 401 Unauthorized
-* Invalid / expired → 401 Unauthorized
-* Valid → Request is forwarded
+* Missing -> 401 Unauthorized
+* Invalid / expired -> 401 Unauthorized
+* Valid -> Request is forwarded
 
 ### JWT Configuration (example)
 ```
@@ -99,9 +99,9 @@ docker compose up --scale payment-service=2
 Requests are routed like:
 ```
 nginx
-Request 1 → payment-service-1
-Request 2 → payment-service-2
-Request 3 → payment-service-1
+Request 1 -> payment-service-1
+Request 2 -> payment-service-2
+Request 3 -> payment-service-1
 ```
 If one instance crashes, traffic is automatically redirected.
 
@@ -179,7 +179,7 @@ The gateway integrates with:
 
 This allows:
 
-* Request tracing from gateway → service
+* Request tracing from gateway -> service
 * Per-route latency monitoring
 * Error rate analysis
 * Load balancing visibility
