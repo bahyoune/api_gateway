@@ -14,8 +14,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> resourceNotFoundExceptionHandler(ResourceNotFoundException ex, WebRequest request){
         ErrorMessage errorMessage = ErrorMessage
                 .builder()
-                .message(ex.getMessage())
-                .details(request.getDescription(false))
+                .message( request.getDescription(false))
+                .details(ex.getMessage())
                 .build();
         return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
     }
@@ -24,8 +24,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> globalExceptionHandler(Exception ex, WebRequest request){
         ErrorMessage errorMessage = ErrorMessage
                 .builder()
-                .message(ex.getMessage())
-                .details(request.getDescription(false))
+                .message( request.getDescription(false))
+                .details(ex.getMessage())
                 .build();
         return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
     }
