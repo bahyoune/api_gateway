@@ -419,6 +419,7 @@ Test dependencies include:
 ## Author
 
 **Bah Youne**
+
 Founder & Backend / Full Stack Java Developer
 
 * GitHub: [http://github.com/bahyoune]
