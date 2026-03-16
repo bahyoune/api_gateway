@@ -6,13 +6,13 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.5.5</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <relativePath/> 
     </parent>
     <groupId>com.microtest</groupId>
     <artifactId>ApiGateway</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>3.0.1-SNAPSHOT</version>
     <name>ApiGateway</name>
-    <description>Api gateway for my microservice architecture</description>
+    <description>Api gateway for the microservice architecture</description>
     <url/>
     <licenses>
         <license/>

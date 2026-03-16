@@ -1,4 +1,4 @@
-package com.microtest.ApiGateway.handlingError;
+package com.microtest.ApiGateway.exception;
 
 
 import org.springframework.http.HttpStatus;

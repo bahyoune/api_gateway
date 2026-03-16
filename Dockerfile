@@ -5,7 +5,7 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 # Copy jar
-COPY target/ApiGateway-0.0.1-SNAPSHOT.jar app.jar
+COPY target/ApiGateway-3.0.1-SNAPSHOT.jar app.jar
 COPY opentelemetry-javaagent.jar /app/opentelemetry-javaagent.jar
 
 

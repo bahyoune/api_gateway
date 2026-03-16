@@ -6,7 +6,8 @@ spring:
 
   cloud:
     config:
-      uri: http://172.17.0.1:8888
+#      uri: http://localhost:8888
+      uri: http://config-server:8888
       fail-fast: true
       retry:
         max-attempts: 6

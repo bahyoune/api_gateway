@@ -1,128 +1,185 @@
-# API Gateway
+# API Gateway — Security, Routing & Traffic Control (v3)
+
+> Cloud-native edge service responsible for request routing, JWT validation, Redis-based rate limiting, load balancing, and protecting internal microservices from direct public access.
+
+![Java](https://img.shields.io/badge/Java-17+-orange)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen)
+![Spring Cloud Gateway](https://img.shields.io/badge/Spring%20Cloud-Gateway-blue)
+![Redis](https://img.shields.io/badge/Redis-Rate%20Limiting-red)
+![Security](https://img.shields.io/badge/Security-JWT-success)
+![Architecture](https://img.shields.io/badge/Architecture-Microservices-blue)
+
+---
+
+# Table of Contents
+
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Architecture Role](#architecture-role)
+- [Request Flow](#request-flow)
+- [Security Model](#security-model)
+- [Rate Limiting with Redis](#rate-limiting-with-redis)
+- [Load Balancing & Service Discovery](#load-balancing--service-discovery)
+- [Gateway Routing](#gatewa-routing)
+- [Service Isolation](#service-isolation)
+- [Observability](#observability)
+- [Configuration](#configuration)
+- [Run Locally](#run-locally)
+- [Run with Docker](#run-with-docker)
+- [Version History](#version-history)
+- [Author](#author)
+
+---
+
+# Overview
+
 The **API Gateway** is the **single public entry point** of the platform.
 
-It acts as a smart edge service that:
-* Secures APIs using **JWT authentication**
-* Routes requests to internal microservices
-* Performs **load balancing**
-* Applies **rate limiting** to protect downstream services
-* Hides internal services from public access
+All external traffic must pass through the gateway before reaching internal services.
 
-All external traffic **must** go through the gateway.
+It provides:
 
----
+- centralized **authentication and authorization**
+- **request routing** to microservices
+- **rate limiting** to protect services
+- **load balancing** across service instances
+- **security boundary** between public clients and internal services
 
-## Responsibilities
-The API Gateway is responsible for:
-* **Authentication & Authorization**
-* **Load Balancing** across service instances
-* **Rate Limiting** to prevent abuse
-* **Request routing** to internal services
-* **Security boundary** between public and private services
-
-Internal services (Order, Payment, etc.) are **never exposed publicly**.
+The gateway simplifies the client experience while enforcing platform-wide policies.
 
 ---
 
-## Security -> JWT Authentication
-### Overview
-The gateway enforces **JWT-based security** for all incoming requests.
+# Key Features
 
-* Clients must provide a valid JWT token
-* Tokens are validated at the gateway level
-* Invalid or missing tokens are rejected immediately
-* Downstream services trust the gateway and do not expose public auth
+- Single public entry point
+- JWT authentication and validation
+- Redis-backed rate limiting
+- Dynamic routing to internal services
+- Service discovery integration
+- Load balancing with Spring Cloud
+- Protection of internal services
+- Observability integration with OpenTelemetry stack
+
+---
+
+# Architecture Role
+
+The gateway sits at the **edge of the system**.
+
+```
+
+Client
+↓
+API Gateway
+├─ User Service
+├─ Order Service
+└─ Payment Service
+
+```
+
+It acts as a **traffic controller** and **security boundary**.
+
+Responsibilities include:
+
+- validating authentication tokens
+- enforcing rate limits
+- forwarding requests
+- balancing traffic across instances
+- protecting internal services from direct access
+
+---
+
+# Request Flow
+
+Typical request lifecycle:
+
+```
+
+Client
+↓ HTTP Request
+API Gateway
+├─ JWT validation
+├─ Redis rate limit check
+├─ Service discovery lookup
+└─ Request routing
+↓
+Internal Microservice
+
+```
+
+This ensures that **all requests are validated and controlled before reaching backend services**.
+
+---
+
+# Security Model
+
+The gateway enforces **JWT-based authentication**.
 
 ### Authentication Flow
+
 ```
+
 Client
-  ↓ (JWT Token)
+↓ (JWT Token)
 API Gateway
-  ↓ (validated request)
+↓ (validated request)
 Internal Services
+
 ```
+
 ### Example Request
+
 ```
-http
+
 GET /orders/123
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-If the token is:
-* Missing -> 401 Unauthorized
-* Invalid / expired -> 401 Unauthorized
-* Valid -> Request is forwarded
 
-### JWT Configuration (example)
-```
-yaml
+````
+
+Gateway behavior:
+
+| Condition | Result |
+|---|---|
+Missing token | `401 Unauthorized` |
+Invalid token | `401 Unauthorized` |
+Valid token | Request forwarded |
+
+### JWT Configuration Example
+
+```yaml
 spring:
   security:
     oauth2:
       resourceserver:
         jwt:
           issuer-uri: http://auth-server:8080
+````
 
-```
-The gateway acts as a **resource server**, validating JWT tokens before routing.
-
----
-
-## Load Balancing
-### Overview
-The API Gateway uses **Spring Cloud LoadBalancer** together with **Eureka Discovery**.
-* Services are addressed by logical name
-* Multiple instances are automatically load-balanced
-* Failed instances are removed from routing
-* No hardcoded IPs or ports
-### Example Route Configuration
-```
-yaml
-spring:
-  cloud:
-    gateway:
-      routes:
-        - id: payment-service
-          uri: lb://payment-service
-          predicates:
-            - Path=/payments/**
-```
-lb:// tells the gateway to:
-* Discover instances via Eureka
-* Distribute traffic across them
-* Automatically handle failover
-### Load Balancing Behavior
-With two instances running:
-```
-bash
-docker compose up --scale payment-service=2
-```
-Requests are routed like:
-```
-nginx
-Request 1 -> payment-service-1
-Request 2 -> payment-service-2
-Request 3 -> payment-service-1
-```
-If one instance crashes, traffic is automatically redirected.
+The gateway acts as a **resource server**, validating tokens before forwarding requests.
 
 ---
 
-## Rate Limiting (Redis-based)
-### Overview
-Rate limiting is implemented using Redis to protect services from:
-* Abuse
-* Traffic spikes
-* Accidental overload
+# Rate Limiting with Redis
 
-Limits are applied before requests reach backend services.
-### Why Redis?
-* Distributed and fast
-* Works across multiple gateway instances
-* Production-grade solution
+Rate limiting protects backend services from:
 
-### Example Rate Limit Configuration
-```
-yaml
+* abusive clients
+* traffic spikes
+* brute-force login attempts
+* accidental overload
+
+The gateway uses **Redis as a distributed rate limit store**.
+
+### Why Redis
+
+* extremely fast
+* shared across gateway instances
+* distributed rate limits
+* production-grade solution
+
+### Example Configuration
+
+```yaml
 spring:
   cloud:
     gateway:
@@ -137,90 +194,233 @@ spring:
                 redis-rate-limiter.replenishRate: 10
                 redis-rate-limiter.burstCapacity: 20
 ```
+
 This configuration allows:
-* 10 requests per second
-* Burst up to 20 requests
-### When limit is exceeded
+
+* **10 requests per second**
+* **burst capacity of 20 requests**
+
+### When Rate Limit Is Exceeded
+
 ```
-http
 HTTP/1.1 429 Too Many Requests
 ```
 
----
-
-## Service Isolation & Security Boundary
-The API Gateway is the only publicly exposed service.
-
-Service	---------------------- Publicly Accessible <br>
-API Gateway ------------------ Yes <br>
-User Service ----------------- No <br>
-Order Service ---------------- No <br>
-Payment Service -------------- No <br>
-Config Server ---------------- No <br>
-Eureka Server ---------------- No <br>
-
-Internal services:
-* Are only accessible via Docker network
-* Accept requests only from the gateway
-* Are protected from direct access
+This protects the entire platform from overload.
 
 ---
 
-## Observability
+# Load Balancing & Service Discovery
 
 The gateway integrates with:
 
-* **OpenTelemetry**
-* **Prometheus** (metrics)
-* **Loki** (Logs)
-* **Tempo** (distributed tracing)
-* **Grafana** (dashboards)
-* **Kafka metrics & traces**
+* **Spring Cloud LoadBalancer**
+* **Eureka Discovery Server**
 
-This allows:
+Services are addressed by **logical name** instead of fixed IP addresses.
 
-* Request tracing from gateway -> service
-* Per-route latency monitoring
-* Error rate analysis
-* Load balancing visibility
+Example:
 
----
+```
+uri: lb://payment-service
+```
 
-## Startup Order
-The API Gateway depends on:
-* Config Server
-* Eureka Discovery
-* Redis (for rate limiting)
+This allows the gateway to:
 
-Once running, all client traffic flows through the gateway.
+* discover service instances dynamically
+* distribute traffic automatically
+* remove failed instances from routing
 
----
+### Example
 
-## Why this design?
-This gateway follows industry best practices:
+Running multiple instances:
 
-* Zero-trust boundary
-* Centralized security
-* Horizontal scalability
-* Built-in resilience
-* Clean separation of concerns
+```
+docker compose up --scale payment-service=2
+```
 
-This is the same pattern used in:
-* Cloud-native systems
-* Kubernetes ingress layers
-* Large-scale microservice platforms
+Requests are distributed automatically:
+
+```
+Request 1 → payment-service-1
+Request 2 → payment-service-2
+Request 3 → payment-service-1
+```
 
 ---
 
-## Summary
+# Gateway Routing
 
-+ Single public entry point
-+ JWT-based security
-+ Redis-backed rate limiting
-+ Dynamic load balancing
-+ Failover-ready routing
-+ Fully observable
+The gateway routes traffic to backend services based on **route predicates**.
 
+Example configuration:
 
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: payment-service
+          uri: lb://payment-service
+          predicates:
+            - Path=/payments/**
+```
 
+This means:
+
+```
+/payments/** → payment-service
+```
+
+Routing remains dynamic and service instances can scale horizontally.
+
+---
+
+# Service Isolation
+
+The gateway acts as a **security boundary**.
+
+Only the gateway is exposed publicly.
+
+| Service         | Public Access |
+| --------------- | ------------- |
+| API Gateway     | Yes           |
+| User Service    | No            |
+| Order Service   | No            |
+| Payment Service | No            |
+| Config Server   | No            |
+| Eureka Server   | No            |
+
+Internal services:
+
+* run inside the Docker network
+* accept requests only from the gateway
+* remain protected from direct internet access
+
+---
+
+# Observability
+
+The gateway integrates with the platform observability stack:
+
+* OpenTelemetry
+* Prometheus (metrics)
+* Loki (logs)
+* Tempo (tracing)
+* Grafana (dashboards)
+
+This enables:
+
+* request tracing from gateway to services
+* route latency monitoring
+* error rate analysis
+* load balancing visibility
+
+---
+
+# Configuration
+
+The gateway retrieves configuration from the **Config Server**.
+
+Externalized configuration includes:
+
+* routing rules
+* JWT settings
+* rate limit configuration
+* Redis connection
+* service discovery settings
+
+---
+
+# Run Locally
+
+Prerequisites:
+
+* Java 17+
+* Maven
+* Redis running
+* Config Server running
+* Discovery Server running
+
+Start the service:
+
+```
+mvn clean spring-boot:run
+```
+
+---
+
+# Run with Docker
+
+Build the image:
+
+```
+docker build -t api-gateway:3.0 .
+```
+
+Run container:
+
+```
+docker run -p 8080:8080 api-gateway:3.0
+```
+
+---
+
+# Testing Strategy
+
+The gateway includes multiple test layers:
+
+### Unit Tests
+
+Validate gateway configuration logic.
+
+### Slice Tests
+
+Validate routing and filter behavior.
+
+### Integration Tests
+
+Validate:
+
+* JWT validation
+* Redis rate limiting
+* routing to downstream services
+
+Test dependencies include:
+
+* spring-security-test
+* MockMvc
+* jackson-databind
+
+---
+
+# Version History
+
+## v3
+
+* Redis-based rate limiting added
+* JWT validation improvements
+* routing architecture refactored
+* observability integration improved
+* updated testing strategy
+
+## v2
+
+* Added Principe of Clean Code
+
+## v1
+
+* initial gateway foundation
+* gateway routing implementation
+* JWT authentication layer
+
+---
+
+## Author
+
+**Bah Youne**
+Founder & Backend / Full Stack Java Developer
+
+* GitHub: [http://github.com/bahyoune]
+* LinkedIn: [http://linkedin.com/in/younoussa-bah]
 
